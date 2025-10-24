@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Meme Lab — Easy, Funny, Tamil-ready (Updated)</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Noto+Sans+Tamil&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0b1020;--card:#0f1724;--accent:#ffd6e8;--muted:#97a0b3;--glass:rgba(255,255,255,0.03);--radius:12px}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;font-family:Roboto, system-ui, -apple-system, 'Noto Sans Tamil', sans-serif;background:linear-gradient(180deg,#071024 0%, #0b1020 100%);color:#e6eef8;display:flex;align-items:flex-start;justify-content:center;padding:28px}
+  .app{width:100%;max-width:1100px}
+  header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+  h1{margin:0;font-size:20px;letter-spacing:0.6px}
+  .subtitle{color:var(--muted);font-size:13px}
+  .grid{display:grid;grid-template-columns:360px 1fr;gap:18px}
+  .panel{background:var(--card);border-radius:var(--radius);padding:14px;border:1px solid rgba(255,255,255,0.03);box-shadow:0 6px 18px rgba(2,6,23,0.6)}
+  .templates{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .tpl{background:var(--glass);border-radius:8px;overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center;height:86px}
+  .tpl img{width:100%;height:100%;object-fit:cover}
+  label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+  input[type=text], select, textarea{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:#fff}
+  input[type=color]{padding:4px;height:36px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent}
+  textarea{min-height:70px}
+  .row{display:flex;gap:8px}
+  .btn{background:linear-gradient(90deg,var(--accent),#a27bff);border:none;padding:10px 12px;border-radius:10px;color:#021;font-weight:700;cursor:pointer}
+  .muted{color:var(--muted);font-size:13px}
+  .stage{display:flex;flex-direction:column;gap:12px;align-items:center}
+  .meme-canvas{width:720px;height:520px;background:#111;border-radius:10px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+  .meme-canvas img{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;transform-origin:top left}
+  .caption{position:absolute;padding:6px 10px;font-weight:800;text-align:center;text-transform:uppercase;letter-spacing:0.6px;text-shadow:0 4px 18px rgba(0,0,0,0.7);cursor:grab;user-select:none}
+  .caption:active{cursor:grabbing}
+  .caption.top{top:12px;left:50%;transform:translateX(-50%);font-size:34px}
+  .caption.bottom{bottom:12px;left:50%;transform:translateX(-50%);font-size:34px}
+  .controls{display:flex;gap:8px;align-items:center}
+  .emoji-picker{display:flex;gap:6px;flex-wrap:wrap;max-height:140px;overflow:auto;padding:6px;background:rgba(255,255,255,0.01);border-radius:8px}
+  .emoji{cursor:pointer;font-size:20px;padding:4px;border-radius:6px;user-select:none;-webkit-user-drag:none}
+  .emoji:hover{background:rgba(255,255,255,0.02)}
+  .note{font-size:13px;color:var(--muted)}
+  footer{margin-top:14px;display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:13px}
+  .cropper{position:absolute;border:2px dashed #FFD6E8;background:rgba(255,255,255,0.03);z-index:10;touch-action:none}
+  .handle{position:absolute;width:12px;height:12px;background:#ffd6e8;border-radius:2px;z-index:11;cursor:nesw-resize}
+  .handle.edge{width:10px;height:10px;background:#ffd6e8;border-radius:2px;opacity:0.9}
+  .handle.tl{left:-6px;top:-6px;cursor:nwse-resize}
+  .handle.tr{right:-6px;top:-6px;cursor:nesw-resize}
+  .handle.bl{left:-6px;bottom:-6px;cursor:nesw-resize}
+  .handle.br{right:-6px;bottom:-6px;cursor:nwse-resize}
+  .handle.l{left:-6px;top:50%;transform:translateY(-50%);cursor:ew-resize}
+  .handle.r{right:-6px;top:50%;transform:translateY(-50%);cursor:ew-resize}
+  .handle.t{left:50%;top:-6px;transform:translateX(-50%);cursor:ns-resize}
+  .handle.b{left:50%;bottom:-6px;transform:translateX(-50%);cursor:ns-resize}
+  .zoom-row{width:720px;max-width:100%;display:flex;align-items:center;gap:10px;margin-top:8px}
+  .zoom-row input[type=range]{flex:1}
+  @media (max-width:980px){.grid{grid-template-columns:1fr} .meme-canvas{width:100%;height:360px} .zoom-row{width:100%}}
+</style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>Meme Lab — Make. Laugh. Share.</h1>
+        <div class="subtitle">Simple DOM meme editor • Tamil-ready • Emoji & crop • Zoom • Text color</div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="panel" style="height:100%">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <strong>Templates</strong>
+          <button id="loadMore" class="btn" style="padding:6px 8px;font-size:13px">Load from Imgflip</button>
+        </div>
+
+        <div class="templates" id="templates">
+          <!-- thumbnails injected -->
+        </div>
+
+        <hr style="border:none;height:10px">
+
+        <div style="margin-top:8px">
+          <label>Top caption (English / தமிழ்)</label>
+          <input id="topText" type="text" placeholder="Type top text — தமிழ் எழுதலாம்" />
+        </div>
+        <div style="margin-top:8px">
+          <label>Bottom caption</label>
+          <input id="bottomText" type="text" placeholder="Type bottom text" />
+        </div>
+
+        <div style="margin-top:8px">
+          <label>Text color</label>
+          <input id="textColor" type="color" value="#ffffff" />
+        </div>
+
+        <div style="margin-top:8px">
+          <label>Emoji quick-pick</label>
+          <div class="emoji-picker" id="emojiPicker"></div>
+        </div>
+
+        <div style="margin-top:10px">
+          <label>Upload up to 3 images (custom templates) — max 5MB each</label>
+          <input id="fileUpload" type="file" accept="image/*" multiple />
+          <div id="fileStatus" class="note"></div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+          <button id="downloadBtn" class="btn">Download PNG</button>
+          <button id="resetBtn" class="btn" style="background:#44566a;color:#fff">Reset</button>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="note">Tip: Type Tamil directly — font loads Noto Sans Tamil. Drag captions to reposition; double-click a caption to edit inline.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="stage">
+          <div class="meme-canvas" id="canvasWrap" aria-label="Meme preview">
+            <div id="canvasInner" style="width:100%;height:100%;position:relative"></div>
+          </div>
+
+          <div class="zoom-row" style="margin-top:10px">
+            <div class="note" style="min-width:90px">Zoom</div>
+            <input id="zoomSlider" type="range" min="0.5" max="2" step="0.01" value="1" />
+            <div id="zoomVal" class="note" style="min-width:40px;text-align:right">100%</div>
+          </div>
+        </div>
+
+        <footer>
+          <div>Made with ❤️ — Meme Lab</div>
+          <div>Validation: max 3 uploads • 5MB each</div>
+        </footer>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ===== STATE & ELEMENTS ===== */
+const templatesEl = document.getElementById('templates');
+const canvasInner = document.getElementById('canvasInner');
+const canvasWrap = document.getElementById('canvasWrap');
+const topTextInput = document.getElementById('topText');
+const bottomTextInput = document.getElementById('bottomText');
+const textColorInput = document.getElementById('textColor');
+const fileUpload = document.getElementById('fileUpload');
+const fileStatus = document.getElementById('fileStatus');
+const downloadBtn = document.getElementById('downloadBtn');
+const resetBtn = document.getElementById('resetBtn');
+const loadMore = document.getElementById('loadMore');
+const zoomSlider = document.getElementById('zoomSlider');
+const zoomVal = document.getElementById('zoomVal');
+
+let state = { imgSrc: null, customTemplates: [] };
+let cropState = { left: 60, top: 40, w: 600, h: 360, zoom: 1 };
+let textColor = '#ffffff';
+
+/* ===== Emoji picker (expanded) ===== */
+const emojis = ['😂','🤣','🔥','💀','🎯','🙏','🤡','😎','💩','🤯','💥','💫','😱','🙌','👍','👏','🤔','🥵','🥶','🤤','🥳','😜','😏','😇','🤪','🤓','😈','👻','👽','🤖','🫠','🫡','🫢','🤌','💁‍♀️','🧠','🍑','🍆','🍿'];
+const emojiPicker = document.getElementById('emojiPicker');
+emojis.forEach(e => { const s = document.createElement('span'); s.className = 'emoji'; s.textContent = e; emojiPicker.appendChild(s); });
+
+// Prevent emojis from being dragged accidentally
+emojiPicker.addEventListener('mousedown', ev => ev.preventDefault());
+
+emojiPicker.addEventListener('click', e => {
+  if(e.target.classList.contains('emoji')){
+    const active = document.activeElement;
+    if(active && (active === topTextInput || active === bottomTextInput)) {
+      active.value += e.target.textContent;
+      active.dispatchEvent(new Event('input'));
+    } else {
+      topTextInput.value += e.target.textContent;
+      topTextInput.dispatchEvent(new Event('input'));
+    }
+  }
+});
+
+/* ===== helpers ===== */
+function el(tag, attrs = {}, parent = null){
+  const e = document.createElement(tag);
+  for(const [k,v] of Object.entries(attrs)){
+    if(k === 'html') e.innerHTML = v;
+    else e.setAttribute(k, v);
+  }
+  if(parent) parent.appendChild(e);
+  return e;
+}
+
+/* ===== templates placeholders & loading ===== */
+function showPlaceholders(){
+  const urls = ['https://i.imgflip.com/1ur9b0.jpg','https://i.imgflip.com/1g8my4.jpg','https://i.imgflip.com/30b1gx.jpg','https://i.imgflip.com/1bhw.jpg'];
+  templatesEl.innerHTML = '';
+  urls.forEach(u => {
+    const box = el('div',{class:'tpl'});
+    const img = el('img'); img.src = u; box.appendChild(img);
+    box.addEventListener('click', ()=>selectTemplate(u));
+    templatesEl.appendChild(box);
+  });
+}
+showPlaceholders();
+
+async function loadTemplates(){
+  templatesEl.innerHTML = '<div class="muted">Loading…</div>';
+  try{
+    const res = await fetch('https://api.imgflip.com/get_memes');
+    const j = await res.json();
+    templatesEl.innerHTML = '';
+    const memes = (j.data && j.data.memes) ? j.data.memes.slice(0,8) : [];
+    memes.forEach(m => {
+      const box = el('div', {class:'tpl'});
+      const img = el('img'); img.src = m.url; box.appendChild(img);
+      box.addEventListener('click', ()=>selectTemplate(m.url));
+      templatesEl.appendChild(box);
+    });
+  }catch(err){
+    templatesEl.innerHTML = '<div class="muted">Failed to load templates. Upload your own.</div>';
+    console.error(err);
+  }
+}
+loadMore.addEventListener('click', loadTemplates);
+
+/* ===== select template / render canvas area ===== */
+function selectTemplate(src){
+  state.imgSrc = src;
+  renderCanvas();
+  updateImageTransform();
+}
+
+function renderCanvas(){
+  canvasInner.innerHTML = '';
+  if(state.imgSrc){
+    const img = el('img', {src: state.imgSrc}, canvasInner);
+    img.onload = () => {
+      img.dataset.nw = img.naturalWidth;
+      img.dataset.nh = img.naturalHeight;
+      updateImageTransform();
+    };
+  } else {
+    canvasInner.innerHTML = '<div style="color:var(--muted);font-size:16px">Pick a template or upload your own (max 3 files).</div>';
+  }
+
+  // add captions
+  const top = el('div', {class:'caption top', contenteditable:true, id:'cap-top'}, canvasInner);
+  top.textContent = topTextInput.value || '';
+  const bottom = el('div', {class:'caption bottom', contenteditable:true, id:'cap-bottom'}, canvasInner);
+  bottom.textContent = bottomTextInput.value || '';
+
+  // set initial color
+  top.style.color = textColor; bottom.style.color = textColor;
+
+  // make captions draggable (restored behavior)
+  initCaptionDrag(top); initCaptionDrag(bottom);
+  top.addEventListener('blur', ()=>{ topTextInput.value = top.textContent; });
+  bottom.addEventListener('blur', ()=>{ bottomTextInput.value = bottom.textContent; });
+
+  // sync typed input -> captions
+  topTextInput.addEventListener('input', ()=>{ const t = document.getElementById('cap-top'); if(t){ t.textContent = topTextInput.value; }});
+  bottomTextInput.addEventListener('input', ()=>{ const t = document.getElementById('cap-bottom'); if(t){ t.textContent = bottomTextInput.value; }});
+
+  // add cropper (if not exists)
+  if(!canvasInner.querySelector('.cropper')){
+    createCropper();
+  } else {
+    const c = canvasInner.querySelector('.cropper');
+    canvasInner.appendChild(c);
+  }
+}
+
+/* ===== caption drag (restored UX) ===== */
+function initCaptionDrag(node){
+  // allow focusing for editing on double click
+  node.addEventListener('dblclick', ()=>{ node.focus(); document.execCommand('selectAll', false, null); });
+
+  node.addEventListener('pointerdown', start);
+  node.style.touchAction = 'none';
+  function start(e){
+    // if user double-clicked to edit, don't start drag
+    if(e.detail > 1) return;
+    e.preventDefault();
+    node.setPointerCapture(e.pointerId);
+    const rect = node.getBoundingClientRect();
+    const wrapRect = canvasInner.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
+    function move(ev){
+      // if contenteditable is focused, don't drag
+      if(document.activeElement === node) return;
+      let left = ev.clientX - wrapRect.left - offsetX;
+      let top = ev.clientY - wrapRect.top - offsetY;
+      left = Math.max(0, Math.min(left, wrapRect.width - rect.width));
+      top = Math.max(0, Math.min(top, wrapRect.height - rect.height));
+      node.style.left = left + 'px';
+      node.style.top = top + 'px';
+      node.style.transform = 'none';
+    }
+    function up(){ node.releasePointerCapture(e.pointerId); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); }
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+  }
+}
+
+/* ===== CROP: create cropper with handles, drag & resize logic ===== */
+function createCropper(){
+  const c = el('div', {class:'cropper'}, canvasInner);
+  c.style.left = cropState.left + 'px';
+  c.style.top = cropState.top + 'px';
+  c.style.width = cropState.w + 'px';
+  c.style.height = cropState.h + 'px';
+
+  const handles = ['tl','t','tr','r','br','b','bl','l'];
+  handles.forEach(h => { const hEl = el('div', {class:'handle ' + h}, c); if(['t','b','l','r'].includes(h)) hEl.classList.add('edge'); hEl.dataset.dir = h; });
+
+  // drag whole cropper
+  c.addEventListener('pointerdown', (e) => {
+    if(e.target !== c) return;
+    e.preventDefault();
+    const rect = c.getBoundingClientRect();
+    const wrapRect = canvasInner.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left; const offsetY = e.clientY - rect.top;
+    c.setPointerCapture(e.pointerId);
+    function move(ev){
+      let left = ev.clientX - wrapRect.left - offsetX;
+      let top = ev.clientY - wrapRect.top - offsetY;
+      left = Math.max(0, Math.min(left, wrapRect.width - rect.width));
+      top = Math.max(0, Math.min(top, wrapRect.height - rect.height));
+      c.style.left = left + 'px'; c.style.top = top + 'px'; cropState.left = left; cropState.top = top;
+    }
+    function up(){ c.releasePointerCapture(e.pointerId); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); }
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+  });
+
+  // resize via handles
+  const handleEls = c.querySelectorAll('.handle');
+  handleEls.forEach(hEl=>{
+    hEl.addEventListener('pointerdown', (e)=>{
+      e.stopPropagation(); e.preventDefault();
+      const dir = hEl.dataset.dir; const wrapRect = canvasInner.getBoundingClientRect(); const startRect = c.getBoundingClientRect();
+      const start = {x: e.clientX, y: e.clientY, left: startRect.left - wrapRect.left, top: startRect.top - wrapRect.top, w: startRect.width, h: startRect.height};
+      hEl.setPointerCapture(e.pointerId);
+
+      function move(ev){
+        const dx = ev.clientX - start.x; const dy = ev.clientY - start.y;
+        let newLeft = start.left, newTop = start.top, newW = start.w, newH = start.h;
+        if(dir.includes('l')){ newLeft = Math.max(0, Math.min(start.left + dx, start.left + start.w - 40)); newW = start.w - (newLeft - start.left); }
+        if(dir.includes('r')){ newW = Math.max(40, Math.min(start.w + dx, canvasInner.clientWidth - start.left)); }
+        if(dir.includes('t')){ newTop = Math.max(0, Math.min(start.top + dy, start.top + start.h - 40)); newH = start.h - (newTop - start.top); }
+        if(dir.includes('b')){ newH = Math.max(40, Math.min(start.h + dy, canvasInner.clientHeight - start.top)); }
+        if(newLeft + newW > canvasInner.clientWidth){ newW = canvasInner.clientWidth - newLeft; }
+        if(newTop + newH > canvasInner.clientHeight){ newH = canvasInner.clientHeight - newTop; }
+        c.style.left = newLeft + 'px'; c.style.top = newTop + 'px'; c.style.width = newW + 'px'; c.style.height = newH + 'px';
+        cropState.left = newLeft; cropState.top = newTop; cropState.w = newW; cropState.h = newH;
+      }
+
+      function up(){ hEl.releasePointerCapture(e.pointerId); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); }
+      window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+    });
+  });
+}
+
+/* ===== Image transform / zoom handling ===== */
+zoomSlider.addEventListener('input', ()=>{ cropState.zoom = parseFloat(zoomSlider.value); zoomVal.textContent = Math.round(cropState.zoom * 100) + '%'; updateImageTransform(); });
+function updateImageTransform(){ const img = canvasInner.querySelector('img'); if(!img) return; img.style.transform = `scale(${cropState.zoom})`; img.style.transformOrigin = 'top left'; }
+
+/* ===== file upload validation & previews ===== */
+fileUpload.addEventListener('change', (e)=>{
+  const files = Array.from(e.target.files || []); const maxFiles = 3; const maxSize = 5 * 1024 * 1024;
+  if(files.length > maxFiles){ fileStatus.textContent = `You can upload up to ${maxFiles} files.`; fileUpload.value=''; return; }
+  for(const f of files){ if(f.size > maxSize){ fileStatus.textContent = `${f.name} is too large (max 5MB).`; fileUpload.value=''; return; } }
+  fileStatus.textContent = `Uploaded ${files.length} file(s). Click any to use as template.`;
+  files.forEach(f=>{ const url = URL.createObjectURL(f); const box = el('div',{class:'tpl'}); const img = el('img'); img.src = url; box.appendChild(img); box.addEventListener('click', ()=>selectTemplate(url)); templatesEl.prepend(box); });
+});
+
+/* ===== text color picker ===== */
+textColorInput.addEventListener('input', ()=>{
+  textColor = textColorInput.value || '#ffffff';
+  const t = document.getElementById('cap-top'); const b = document.getElementById('cap-bottom'); if(t) t.style.color = textColor; if(b) b.style.color = textColor;
+});
+
+/* ===== download: draw correct cropped + zoomed region and captions (respecting color) ===== */
+downloadBtn.addEventListener('click', async ()=>{
+  if(!state.imgSrc){ alert('Pick a template or upload an image first.'); return; }
+  const wrap = document.querySelector('.meme-canvas');
+  const outputW = Math.round(cropState.w); const outputH = Math.round(cropState.h);
+  const c = document.createElement('canvas'); c.width = outputW; c.height = outputH; const ctx = c.getContext('2d');
+  const imgEl = canvasInner.querySelector('img'); if(!imgEl){ alert('Image not ready'); return; }
+  const naturalW = parseInt(imgEl.dataset.nw || imgEl.naturalWidth); const naturalH = parseInt(imgEl.dataset.nh || imgEl.naturalHeight);
+  const dispW = canvasInner.clientWidth; const dispH = canvasInner.clientHeight; const baseScale = Math.max(dispW / naturalW, dispH / naturalH);
+  const finalScale = baseScale * cropState.zoom; const renderedW = naturalW * finalScale; const renderedH = naturalH * finalScale; const offsetX = (renderedW - dispW) / 2; const offsetY = (renderedH - dispH) / 2;
+  const srcX = Math.max(0, (offsetX + cropState.left) / finalScale);
+  const srcY = Math.max(0, (offsetY + cropState.top) / finalScale);
+  const srcW = Math.max(1, cropState.w / finalScale); const srcH = Math.max(1, cropState.h / finalScale);
+  const img = new Image(); img.crossOrigin = 'anonymous'; img.src = state.imgSrc;
+  img.onload = () => {
+    const sx = Math.min(Math.max(0, srcX), naturalW - 1);
+    const sy = Math.min(Math.max(0, srcY), naturalH - 1);
+    const sw = Math.min(srcW, naturalW - sx);
+    const sh = Math.min(srcH, naturalH - sy);
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outputW, outputH);
+
+    const topEl = document.getElementById('cap-top'); const bottomEl = document.getElementById('cap-bottom');
+    ctx.fillStyle = textColor || '#ffffff'; ctx.strokeStyle = 'black'; ctx.lineWidth = Math.max(2, Math.floor(outputW / 240)); ctx.textAlign = 'center';
+    // compute font size relative to displayed size
+    const displayedFontTop = parseInt(getComputedStyle(topEl).fontSize) || 34;
+    const fontForCanvas = Math.max(14, Math.floor(displayedFontTop * outputW / canvasInner.clientWidth));
+    ctx.font = `${fontForCanvas}px Impact, Arial Black, sans-serif`;
+
+    const wrapRect = canvasInner.getBoundingClientRect();
+    function drawCaption(el){
+      // use offset positions relative to the canvasInner element (more stable than getBoundingClientRect when transforms are present)
+      // offsetLeft/offsetTop are relative to the offsetParent (canvasInner)
+      const cx = (el.offsetLeft || 0) + (el.offsetWidth || 0) / 2;
+      const cy = (el.offsetTop || 0) + (el.offsetHeight || 0) / 2;
+      // compute relative position inside the crop rect
+      const relX = (cx - cropState.left) / cropState.w; // 0..1
+      const relY = (cy - cropState.top) / cropState.h; // 0..1
+      const outX = relX * outputW;
+      const outY = relY * outputH + (fontForCanvas / 3);
+      // respect element color (inline style) or fallback to chosen textColor
+      ctx.fillStyle = (el.style && el.style.color) ? el.style.color : (textColor || '#ffffff');
+      wrapText(ctx, el.textContent.toUpperCase(), outX, outY, outputW * 0.9, fontForCanvas);
+    }
+    drawCaption(topEl); drawCaption(bottomEl);
+    const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = 'meme.png'; a.click();
+  };
+});
+
+/* ===== text wrapping for canvas ===== */
+function wrapText(ctx, text, x, y, maxWidth, lineHeight){
+  const words = (text||'').split(' ');
+  let line = '', testLine=''; let curY = y;
+  for(let n=0;n<words.length;n++){
+    testLine = line + words[n] + ' ';
+    const metrics = ctx.measureText(testLine);
+    if(metrics.width > maxWidth && n>0){ strokeAndFill(ctx, line.trim(), x, curY); line = words[n] + ' '; curY += lineHeight + 4; }
+    else line = testLine;
+  }
+  strokeAndFill(ctx, line.trim(), x, curY);
+}
+function strokeAndFill(ctx, txt, x, y){ ctx.lineJoin = 'round'; ctx.strokeText(txt, x, y); ctx.fillText(txt, x, y); }
+
+/* ===== reset ===== */
+resetBtn.addEventListener('click', ()=>{
+  state = { imgSrc: null, customTemplates: [] };
+  cropState = { left: 60, top: 40, w: 600, h: 360, zoom: 1 };
+  textColor = '#ffffff'; textColorInput.value = '#ffffff';
+  templatesEl.innerHTML = ''; showPlaceholders(); renderCanvas(); fileUpload.value = ''; fileStatus.textContent = ''; zoomSlider.value = '1'; zoomVal.textContent = '100%';
+});
+
+/* ===== initial placeholders & render ===== */
+function showPlaceholders(){
+  const urls = ['https://i.imgflip.com/1ur9b0.jpg','https://i.imgflip.com/1g8my4.jpg','https://i.imgflip.com/30b1gx.jpg','https://i.imgflip.com/1bhw.jpg'];
+  templatesEl.innerHTML = '';
+  urls.forEach(u => { const box = el('div',{class:'tpl'}); const img = el('img'); img.src = u; box.appendChild(img); box.addEventListener('click', ()=>selectTemplate(u)); templatesEl.appendChild(box); });
+}
+showPlaceholders();
+renderCanvas(); updateImageTransform();
+
+</script>
+</body>
+</html>
